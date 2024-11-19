@@ -1,4 +1,4 @@
-20. Create a program that evaluates if an inputted number is prime.
+# 20. Create a program that evaluates if an inputted number is prime.
 
 
 number = int(input("Enter a number: "))
