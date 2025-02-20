@@ -83,3 +83,15 @@ def delete_todo(todo_id: int, db: Session = Depends(get_db)):
     db.delete(todo)
     db.commit()
     return {"message": "Todo deleted"}
+
+
+# Delete a Todo
+@app.delete("/todos/{todo_id}", response_model=dict)
+def delete_todo(todo_id: int, db: Session = Depends(get_db)):
+    todo = db.query(Todo).filter(Todo.id == todo_id).first()
+    if not todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    
+    db.delete(todo)
+    db.commit()
+    return {"message": "Todo deleted"}
