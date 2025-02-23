@@ -6,6 +6,8 @@ from pydantic import BaseModel
 from typing import Optional
 import time
 
+Todo.metadata.create_all(bind=engine)
+
 app = FastAPI()
 
 # Dependency for DB session
@@ -27,7 +29,11 @@ class TodoCreate(BaseModel):
 class TodoResponse(TodoCreate):
     id: int
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to Todo API"}
 
 # Create a new Todo
 @app.post("/todos/", response_model=TodoResponse)
@@ -45,12 +51,12 @@ def create_todo(todo: TodoCreate, db: Session = Depends(get_db)):
     return db_todo
 
 # Get all Todos
-@app.get("/todos/")
+@app.get("/todoos/")
 def get_todos(db: Session = Depends(get_db)):
     return db.query(Todo).all()
 
 # Get a Todo by ID
-@app.get("/todos/{todo_id}", response_model=TodoResponse)
+@app.get("/todoos/{todo_id}", response_model=TodoResponse)
 def get_todo(todo_id: int, db: Session = Depends(get_db)):
     todo = db.query(Todo).filter(Todo.id == todo_id).first()
     if not todo:
@@ -58,7 +64,7 @@ def get_todo(todo_id: int, db: Session = Depends(get_db)):
     return todo
 
 # Update a Todo
-@app.put("/todos/{todo_id}", response_model=TodoResponse)
+@app.put("/todoos/{todo_id}", response_model=TodoResponse)
 def update_todo(todo_id: int, todo_update: TodoCreate, db: Session = Depends(get_db)):
     todo = db.query(Todo).filter(Todo.id == todo_id).first()
     if not todo:
@@ -74,7 +80,7 @@ def update_todo(todo_id: int, todo_update: TodoCreate, db: Session = Depends(get
     return todo
 
 # Delete a Todo
-@app.delete("/todos/{todo_id}", response_model=dict)
+@app.delete("/todoos/{todo_id}", response_model=dict)
 def delete_todo(todo_id: int, db: Session = Depends(get_db)):
     todo = db.query(Todo).filter(Todo.id == todo_id).first()
     if not todo:
@@ -84,9 +90,8 @@ def delete_todo(todo_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Todo deleted"}
 
-
 # Delete a Todo
-@app.delete("/todos/{todo_id}", response_model=dict)
+@app.delete("/todoos/{todo_id}", response_model=dict)
 def delete_todo(todo_id: int, db: Session = Depends(get_db)):
     todo = db.query(Todo).filter(Todo.id == todo_id).first()
     if not todo:
