@@ -10,7 +10,7 @@ Todo.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# Dependency for DB session
+# Dependency for DB session is below
 def get_db():
     db = SessionLocal()
     try:
