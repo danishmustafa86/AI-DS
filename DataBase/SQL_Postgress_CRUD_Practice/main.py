@@ -48,7 +48,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 def update_user(user_id: int, user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.id == user_id).first()
     if db_user is None:
-        raise HTTPException(status_code=404, detail="User is not here")
+        raise HTTPException(status_code=404, detail="User not found")
     db_user.name = user.name
     db_user.fullname = user.fullname
     db_user.password = user.password
