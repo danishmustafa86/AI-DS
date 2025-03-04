@@ -1,3 +1,6 @@
+# uv run alembic revision --autogenerate -m "create todos table"
+# uv run alembic upgrade head
+
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
 from config.database import SessionLocal, engine
