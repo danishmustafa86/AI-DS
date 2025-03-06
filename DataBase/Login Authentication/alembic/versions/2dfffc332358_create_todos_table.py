@@ -1,24 +1,36 @@
-"""change primary key from ag to email
+"""create todos table
 
-Revision ID: b207eb5d44bd
-Revises: 5c682718535b
-Create Date: 2025-03-07 00:22:41.699730
+Revision ID: 2dfffc332358
+Revises: b207eb5d44bd
+Create Date: 2025-03-07 00:43:44.847801
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.engine.reflection import Inspector
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b207eb5d44bd'
-down_revision: Union[str, None] = '5c682718535b'
+revision: str = '2dfffc332358'
+down_revision: Union[str, None] = 'b207eb5d44bd'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # Get the current connection
+    conn = op.get_bind()
+    inspector = Inspector.from_engine(conn)
+
+    # Check if the 'email' column exists
+    columns = [col['name'] for col in inspector.get_columns('students')]
+    if 'email' not in columns:
+        # Add the 'email' column if it doesn't exist
+        op.add_column('students', sa.Column('email', sa.String(), nullable=False))
+        op.create_index(op.f('ix_students_email'), 'students', ['email'], unique=False)
+
     # Drop the existing primary key constraint
     op.drop_constraint('students_pkey', 'students', type_='primary')
 
@@ -28,9 +40,10 @@ def upgrade() -> None:
     # Add the new primary key constraint
     op.create_primary_key('students_pkey', 'students', ['email'])
 
-    # Add the 'email' column if it doesn't exist
-    op.add_column('students', sa.Column('email', sa.String(), nullable=False))
-    op.create_index(op.f('ix_students_email'), 'students', ['email'], unique=False)
+    # Drop the 'todos' table if it exists
+    op.drop_index('ix_todos_title', table_name='todos')
+    op.drop_index('ix_todos_user_id', table_name='todos')
+    op.drop_table('todos')
 
 
 def downgrade() -> None:

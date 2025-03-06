@@ -5,6 +5,7 @@ from models.student import Student
 from pydantic import BaseModel
 from typing import List
 from utils.utils_helper import create_access_token, decode_access_token
+from validations.validations import StudentCreate, LoginStudent
 
 Student.metadata.create_all(bind=engine)
 
@@ -18,17 +19,7 @@ def get_db():
 
 app = APIRouter()
 
-class StudentCreate(BaseModel):
-    ag: int
-    name: str
-    fullname: str
-    password: str
-    degree: str
-    email: str
 
-class LoginStudent(BaseModel):
-    email: str
-    password: str
 
 @app.get("/")
 def read_root():

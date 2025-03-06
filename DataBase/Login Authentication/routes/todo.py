@@ -5,6 +5,7 @@ from config.database import SessionLocal, engine
 from models.todo import Todo
 from pydantic import BaseModel
 from typing import List
+from validations.validations import TodoCreate
 
 Todo.metadata.create_all(bind=engine)
 
@@ -17,11 +18,7 @@ def get_db():
 
 app = APIRouter()
 
-class TodoCreate(BaseModel):
-    title: str
-    description: str
-    status: str
-    user_id: int
+
 
 @app.get("/")
 def read_root():
