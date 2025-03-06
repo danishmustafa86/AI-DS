@@ -10,3 +10,4 @@ class Student(Base):
     fullname = Column(String, index=True)
     password = Column(String)
     degree = Column(String)
+    email = Column(String, index=True)
