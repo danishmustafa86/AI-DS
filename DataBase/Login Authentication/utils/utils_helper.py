@@ -2,6 +2,9 @@ from datetime import datetime, timedelta
 from typing import Optional
 import jwt
 import os
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
@@ -28,3 +31,12 @@ def decode_access_token(token: str):
         return "Invalid token"
     except Exception as e:
         return str(e)
+    
+
+
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def hash_password(password):
+    return pwd_context.hash(password)

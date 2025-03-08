@@ -1,11 +1,13 @@
 from fastapi import APIRouter, HTTPException, Depends
+from passlib.context import CryptContext
 from sqlalchemy.orm import Session
-from config.database import SessionLocal, engine
-from models.student import Student
 from pydantic import BaseModel
 from typing import List
-from utils.utils_helper import create_access_token, decode_access_token
+from config.database import SessionLocal, engine
+from models.student import Student
+from utils.utils_helper import create_access_token, decode_access_token, verify_password, hash_password
 from validations.validations import StudentCreate, LoginStudent
+
 
 Student.metadata.create_all(bind=engine)
 
@@ -23,17 +25,18 @@ app = APIRouter()
 
 @app.get("/")
 def read_root():
-    return {"Hello": "Server is runing at todo"}
+    return {"Hello": "Server is runing at student page when you open the browser"}
 
 
 @app.post("/register")
 def register_student(student: StudentCreate, db: Session = Depends(get_db)):
     try:
+        hashed_password = hash_password(student.password)
         db_student = Student(
             ag=student.ag,
             name=student.name,
             fullname=student.fullname,
-            password=student.password,
+            password=hashed_password,
             degree=student.degree,
             email=student.email
         )
@@ -57,20 +60,25 @@ def register_student(student: StudentCreate, db: Session = Depends(get_db)):
 def login_student(student: LoginStudent, db: Session = Depends(get_db)):
     try:
         db_student = db.query(Student).filter(Student.email == student.email).first()
+
         if db_student is None:
             return {
                 "message": "Invalid credentials",
                 "status": 401
             }
-        if db_student.password != student.password:
+        isVerify = verify_password(student.password, db_student.password)
+        if not isVerify:
             return {
-                "message": "Invalid password",
+                "message": "Invalid password at passlib verification",
                 "status": 401
             }
+
         access_token = create_access_token(data={"sub": db_student.email})
         return {
             "access_token": access_token,
-            "token_type": "bearer"
+            "token_type": "bearer",
+            "message": "Login successful",
+            "status": 200
         }
     except Exception as e:
         return {
