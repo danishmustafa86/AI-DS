@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from config.database import SessionLocal, engine
 from models.student import Student
-from utils.utils_helper import create_access_token, verify_token as decode_access_token, verify_password, hash_password
+from utils.auth_utils import create_access_token, verify_token, verify_password, hash_password, verify_api_key
 from validations.validations import StudentCreate, LoginStudent
 from sqlalchemy.exc import IntegrityError
 from fastapi.security import OAuth2PasswordBearer
@@ -25,11 +25,6 @@ app = APIRouter()
 def read_root():
     return {"Hello": "Server is running at student page when you open the browser"}
 
-def verify_token(token: str = Depends(oauth2_scheme)):
-    payload = decode_access_token(token)  # Correct function call
-    if isinstance(payload, str):
-        raise HTTPException(status_code=401, detail=payload)
-    return payload
 
 @app.get("/me")
 def read_users_me(user: dict = Depends(verify_token)):
@@ -73,7 +68,7 @@ def register_student(student: StudentCreate, db: Session = Depends(get_db)):
             "error": str(e)
         }
 
-@app.post("/login")
+@app.post("/login", dependencies=[Depends(verify_api_key)])
 def login_student(student: LoginStudent, db: Session = Depends(get_db)):
     db_student = db.query(Student).filter(Student.email == student.email).first()
     if db_student is None or not verify_password(student.password, db_student.password):
@@ -120,9 +115,10 @@ def update_student(id: int, student: StudentCreate, token: str = Depends(verify_
 
 @app.delete("/students/{id}")
 def delete_student(id: int,  token: str = Depends(verify_token) ,db: Session = Depends(get_db)):
-    payload = verify_token(token)
-    if isinstance(payload, str):
-        raise HTTPException(status_code=401, detail=payload)
+    print("token data is  ", token)
+    # print(id,payload)
+    # if isinstance(payload, str):
+    #     raise HTTPException(status_code=401, detail=payload)
 
     db_student = db.query(Student).filter(Student.ag == id).first()
     if db_student is None:
