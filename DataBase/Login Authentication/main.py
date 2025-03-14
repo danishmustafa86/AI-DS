@@ -14,4 +14,4 @@ def read_root():
     return {"Hello": "Server is runing at main page"}
 app.include_router(student.app, prefix="/students", tags=["students"])
 app.include_router(todo.app, prefix="/todos", tags=["todos"])
-#         raise HTTPException(status_code=400, detail=str(e))
+

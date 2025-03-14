@@ -1,13 +1,14 @@
 from fastapi import APIRouter, HTTPException, Depends
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
-from typing import List
 from config.database import SessionLocal, engine
 from models.student import Student
-from utils.utils_helper import create_access_token, decode_access_token, verify_password, hash_password
+from utils.utils_helper import create_access_token, verify_token as decode_access_token, verify_password, hash_password
 from validations.validations import StudentCreate, LoginStudent
+from sqlalchemy.exc import IntegrityError
+from fastapi.security import OAuth2PasswordBearer
 
+# Fix: Define OAuth2 scheme properly
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 Student.metadata.create_all(bind=engine)
 
@@ -18,15 +19,24 @@ def get_db():
     finally:
         db.close()
 
-
 app = APIRouter()
-
-
 
 @app.get("/")
 def read_root():
-    return {"Hello": "Server is runing at student page when you open the browser"}
+    return {"Hello": "Server is running at student page when you open the browser"}
 
+def verify_token(token: str = Depends(oauth2_scheme)):
+    payload = decode_access_token(token)  # Correct function call
+    if isinstance(payload, str):
+        raise HTTPException(status_code=401, detail=payload)
+    return payload
+
+@app.get("/me")
+def read_users_me(user: dict = Depends(verify_token)):
+    return {
+        "token": user,
+        "message": "You are authorized to view this page"
+    }
 
 @app.post("/register")
 def register_student(student: StudentCreate, db: Session = Depends(get_db)):
@@ -36,19 +46,26 @@ def register_student(student: StudentCreate, db: Session = Depends(get_db)):
             ag=student.ag,
             name=student.name,
             fullname=student.fullname,
-            password=hashed_password,
+            password=hashed_password,  # Ensure password is hashed
             degree=student.degree,
             email=student.email
         )
         db.add(db_student)
-        db.commit()
-        db.refresh(db_student)
-        return {
-            "message": "Student created successfully",
-            "data": db_student,
-            "status": 200
+        try:
+            db.commit()
+            db.refresh(db_student)
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(status_code=400, detail="Email already exists")
 
+        token = create_access_token(data={"sub": db_student.email, "id": db_student.ag, "role": "student", "name": db_student.name})
+
+        return {
+            "message": "Student registered successfully",
+            "access_token": token,
+            "status": 200
         }
+
     except Exception as e:
         return {
             "message": "An error occurred",
@@ -58,72 +75,59 @@ def register_student(student: StudentCreate, db: Session = Depends(get_db)):
 
 @app.post("/login")
 def login_student(student: LoginStudent, db: Session = Depends(get_db)):
-    try:
-        db_student = db.query(Student).filter(Student.email == student.email).first()
+    db_student = db.query(Student).filter(Student.email == student.email).first()
+    if db_student is None or not verify_password(student.password, db_student.password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
-        if db_student is None:
-            return {
-                "message": "Invalid credentials",
-                "status": 401
-            }
-        isVerify = verify_password(student.password, db_student.password)
-        if not isVerify:
-            return {
-                "message": "Invalid password at passlib verification",
-                "status": 401
-            }
+    access_token = create_access_token(data={"sub": db_student.email, "id": db_student.ag, "role": "student", "name": db_student.name})
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "message": "Login successful",
+        "status": 200
+    }
 
-        access_token = create_access_token(data={"sub": db_student.email})
-        return {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "message": "Login successful",
-            "status": 200
-        }
-    except Exception as e:
-        return {
-            "message": "An error occurred",
-            "status": 400,
-            "error": str(e)
-        }
-        
-        
-        
+@app.get("/students/{id}")  # Fix: Avoid conflict with "/me"
+def get_student(id: int, token:str = Depends(verify_token) , db: Session = Depends(get_db)):
+    payload = verify_token(token)
+    if isinstance(payload, str):
+        raise HTTPException(status_code=401, detail=payload)
 
-     
+    student = db.query(Student).filter(Student.ag == id).first()
+    if student is None:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return student
 
+@app.put("/students/{id}")
+def update_student(id: int, student: StudentCreate, token: str = Depends(verify_token), db: Session = Depends(get_db)):
+    payload = verify_token(token)
+    if isinstance(payload, str):
+        raise HTTPException(status_code=401, detail=payload)
 
+    db_student = db.query(Student).filter(Student.ag == id).first()
+    if db_student is None:
+        raise HTTPException(status_code=404, detail="Student not found")
 
+    db_student.name = student.name
+    db_student.fullname = student.fullname
+    db_student.password = hash_password(student.password)
+    db_student.degree = student.degree
+    db_student.email = student.email
 
+    db.commit()
+    db.refresh(db_student)
+    return db_student
 
+@app.delete("/students/{id}")
+def delete_student(id: int,  token: str = Depends(verify_token) ,db: Session = Depends(get_db)):
+    payload = verify_token(token)
+    if isinstance(payload, str):
+        raise HTTPException(status_code=401, detail=payload)
 
+    db_student = db.query(Student).filter(Student.ag == id).first()
+    if db_student is None:
+        raise HTTPException(status_code=404, detail="Student not found")
 
-@app.get("/{id}")
-def get_student(id: int, db: Session = Depends(get_db)):
-    return db.query(Student).filter(Student.ag == id).first()
-
-
-@app.put("/{id}")
-def update_student(id: int, student: StudentCreate, db: Session = Depends(get_db)):
-    try:
-        db_student = db.query(Student).filter(Student.ag == id).first()
-        db_student.name = student.name
-        db_student.fullname = student.fullname
-        db_student.password = student.password
-        db_student.degree = student.degree
-        db_student.email = student.email
-        db.commit()
-        db.refresh(db_student)
-        return db_student
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.delete("/{id}")
-def delete_student(id: int, db: Session = Depends(get_db)):
-    try:
-        db_student = db.query(Student).filter(Student.ag == id).first()
-        db.delete(db_student)
-        db.commit()
-        return {"message": "Student deleted"}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    db.delete(db_student)
+    db.commit()
+    return {"message": "Student deleted"}
