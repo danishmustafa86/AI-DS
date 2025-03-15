@@ -168,7 +168,7 @@ def delete_todo_by_AG(AG: str):
         return {
             "data": None,
             "message": "Todo deleted successfully",
-            "status": 200,
+            "status": 200,~
             "error": None   
         }
     except Exception as e:
