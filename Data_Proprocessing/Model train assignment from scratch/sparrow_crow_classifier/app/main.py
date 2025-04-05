@@ -40,7 +40,7 @@ async def predict(file: UploadFile = File(...)):
     class_name = "crow" if prediction[0][0] > 0.5 else "sparrow"
     confidence = float(prediction[0][0] if class_name == "crow" else 1 - prediction[0][0])
     
-    print("Hellow Danish are y0u well")
+    print("Hellow Danish are0u well")
 
     return {
         "class": class_name,
