@@ -1,0 +1,24 @@
+[project]
+name = "cancered_skin_detection"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "dg"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard] (>=0.115.12,<0.116.0)",
+    "uvicorn (>=0.34.1,<0.35.0)",
+    "pillow (>=11.2.1,<12.0.0)",
+    "kaggle (>=1.7.4.2,<2.0.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+kaggle = "^1.7.4.2"
+
