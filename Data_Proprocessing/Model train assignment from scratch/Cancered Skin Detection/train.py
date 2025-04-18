@@ -25,7 +25,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 
 print("Training...")
-for epoch in range(3):  # Keep it low for fast training
+for epoch in range(3):  # Keep it low for very fast training
     running_loss = 0.0
     for inputs, labels in loader:
         inputs, labels = inputs.to(device), labels.to(device)
@@ -40,3 +40,20 @@ for epoch in range(3):  # Keep it low for fast training
 os.makedirs("model", exist_ok=True)
 torch.save(model.state_dict(), model_path)
 print(f"Model saved to {model_path}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
