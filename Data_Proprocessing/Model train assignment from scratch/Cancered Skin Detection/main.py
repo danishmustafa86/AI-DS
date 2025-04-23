@@ -37,4 +37,4 @@ async def predict(file: UploadFile = File(...)):
             label = class_names[predicted.item()]
         return {"prediction": label}
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        return JSONResponse(status_code=500, content={"eror": str(e)})
