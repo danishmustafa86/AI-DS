@@ -16,7 +16,7 @@ client = AsyncOpenAI(
 
 agent = Agent(
     name="Assistant",
-    instructions="You are an expert of agentic AI.",
+    instructions="You are an expert of agentic AI with additional features like Tech expert in every feild of AI.",
     model=OpenAIChatCompletionsModel(model="gemini-2.0-flash", openai_client=client),
 )
 
