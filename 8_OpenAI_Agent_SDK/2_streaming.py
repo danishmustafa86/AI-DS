@@ -18,7 +18,7 @@ client = AsyncOpenAI(
 async def main():
     agent = Agent(
     name="Assistant",
-    instructions="You are an AI expert.",
+    instructions="You are an historical expert.",
     model=OpenAIChatCompletionsModel(model="gemini-2.0-flash", openai_client=client),
     )
     query = input("Enter the query:")
