@@ -42,7 +42,7 @@ def add_todo(title: str, description: str = "", due_date: str = "") -> Dict[str,
         due_date: Optional due date in YYYY-MM-DD format.
     
     Returns:
-        The newly created todo item.
+        The newly  todo item.
     """
     try:
         # Read existing todos
