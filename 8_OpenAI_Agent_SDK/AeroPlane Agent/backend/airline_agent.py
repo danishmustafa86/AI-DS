@@ -3,9 +3,11 @@ from __future__ import annotations as _annotations
 import asyncio
 import random
 import uuid
-
+from dotenv import load_dotenv
 from pydantic import BaseModel
-
+import os
+import requests
+from openai import AsyncOpenAI
 from agents import (
     Agent,
     HandoffOutputItem,
@@ -19,11 +21,27 @@ from agents import (
     function_tool,
     handoff,
     trace,
+    OpenAIChatCompletionsModel,
 )
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
+from agents.models import OpenAIProvider  # Add this import
+from agents import RunConfig  # Add this import
+
+load_dotenv()
+gemini_api_key = os.getenv("GEMINI_API_KEY")
+
+# Create Gemini client
+client = AsyncOpenAI(
+    api_key=gemini_api_key,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+)
+
+# Create model provider - THIS IS THE KEY FIX
+model_provider = OpenAIProvider(client=client)
+# Create run config with the model provider
+run_config = RunConfig(model_provider=model_provider)
 
 ### CONTEXT
-
 
 class AirlineAgentContext(BaseModel):
     passenger_name: str | None = None
@@ -31,9 +49,7 @@ class AirlineAgentContext(BaseModel):
     seat_number: str | None = None
     flight_number: str | None = None
 
-
 ### TOOLS
-
 
 @function_tool(
     name_override="faq_lookup_tool", description_override="Lookup frequently asked questions."
@@ -55,39 +71,27 @@ async def faq_lookup_tool(question: str) -> str:
         return "We have free wifi on the plane, join Airline-Wifi"
     return "I'm sorry, I don't know the answer to that question."
 
-
 @function_tool
 async def update_seat(
     context: RunContextWrapper[AirlineAgentContext], confirmation_number: str, new_seat: str
 ) -> str:
-    """
-    Update the seat for a given confirmation number.
-
-    Args:
-        confirmation_number: The confirmation number for the flight.
-        new_seat: The new seat to update to.
-    """
-    # Update the context based on the customer's input
     context.context.confirmation_number = confirmation_number
     context.context.seat_number = new_seat
-    # Ensure that the flight number has been set by the incoming handoff
     assert context.context.flight_number is not None, "Flight number is required"
     return f"Updated seat to {new_seat} for confirmation number {confirmation_number}"
 
-
 ### HOOKS
-
 
 async def on_seat_booking_handoff(context: RunContextWrapper[AirlineAgentContext]) -> None:
     flight_number = f"FLT-{random.randint(100, 999)}"
     context.context.flight_number = flight_number
-
 
 ### AGENTS
 
 faq_agent = Agent[AirlineAgentContext](
     name="FAQ Agent",
     handoff_description="A helpful agent that can answer questions about the airline.",
+    model=OpenAIChatCompletionsModel(model="gemini-2.0-flash", openai_client=client),
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
     You are an FAQ agent. If you are speaking to a customer, you probably were transferred to from the triage agent.
     Use the following routine to support the customer.
@@ -101,6 +105,7 @@ faq_agent = Agent[AirlineAgentContext](
 seat_booking_agent = Agent[AirlineAgentContext](
     name="Seat Booking Agent",
     handoff_description="A helpful agent that can update a seat on a flight.",
+    model=OpenAIChatCompletionsModel(model="gemini-2.0-flash", openai_client=client),
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
     You are a seat booking agent. If you are speaking to a customer, you probably were transferred to from the triage agent.
     Use the following routine to support the customer.
@@ -123,29 +128,31 @@ triage_agent = Agent[AirlineAgentContext](
         faq_agent,
         handoff(agent=seat_booking_agent, on_handoff=on_seat_booking_handoff),
     ],
+    model=OpenAIChatCompletionsModel(model="gemini-2.0-flash", openai_client=client),
 )
 
 faq_agent.handoffs.append(triage_agent)
 seat_booking_agent.handoffs.append(triage_agent)
 
-
 ### RUN
-
 
 async def main():
     current_agent: Agent[AirlineAgentContext] = triage_agent
     input_items: list[TResponseInputItem] = []
     context = AirlineAgentContext()
-
-    # Normally, each input from the user would be an API request to your app, and you can wrap the request in a trace()
-    # Here, we'll just use a random UUID for the conversation ID
     conversation_id = uuid.uuid4().hex[:16]
 
     while True:
         user_input = input("Enter your message: ")
         with trace("Customer service", group_id=conversation_id):
             input_items.append({"content": user_input, "role": "user"})
-            result = await Runner.run(current_agent, input_items, context=context)
+            # Pass the run_config to Runner - THIS IS THE KEY FIX
+            result = await Runner.run(
+                current_agent, 
+                input_items, 
+                context=context,
+                run_config=run_config  # Use run_config instead
+            )
 
             for new_item in result.new_items:
                 agent_name = new_item.agent.name
@@ -163,7 +170,6 @@ async def main():
                     print(f"{agent_name}: Skipping item: {new_item.__class__.__name__}")
             input_items = result.to_input_list()
             current_agent = result.last_agent
-
 
 if __name__ == "__main__":
     asyncio.run(main())

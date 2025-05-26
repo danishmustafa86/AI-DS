@@ -1,7 +1,7 @@
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI #type ignore
 from agents import Agent, OpenAIChatCompletionsModel, Runner # type: ignore
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv 
 
 
 load_dotenv()

@@ -19,7 +19,7 @@ function App() {
   return (
     <div style={{ padding: 20 }}>
       <h1>Airline Assistant</h1>
-      <div style={{ height: 400, overflowY: 'scroll', border: '1px solid gray', padding: 10 }}>
+      <div style={{ height: 400, overflowY: 'scroll', border: '1px solid', padding: 10 }}>
         {chat.map((msg, index) => (
           <div key={index}><b>{msg.role}:</b> {msg.content}</div>
         ))}
