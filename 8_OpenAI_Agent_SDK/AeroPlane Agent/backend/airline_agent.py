@@ -96,7 +96,7 @@ faq_agent = Agent[AirlineAgentContext](
     You are an FAQ agent. If you are speaking to a customer, you probably were transferred to from the triage agent.
     Use the following routine to support the customer.
     # Routine
-    1. Identify the last question asked by the customer.
+    1. Identify the last question asked by  customer.
     2. Use the faq lookup tool to answer the question. Do not rely on your own knowledge.
     3. If you cannot answer the question, transfer back to the triage agent.""",
     tools=[faq_lookup_tool],
