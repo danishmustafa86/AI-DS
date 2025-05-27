@@ -13,7 +13,7 @@ client = AsyncOpenAI(
 
 @function_tool  
 async def fetch_weather(location) -> str:
-    """Fetch the weather for a given location.
+    """Fetch the weater for a given location.
 
     Args:
         location: The location to fetch the weather for.
