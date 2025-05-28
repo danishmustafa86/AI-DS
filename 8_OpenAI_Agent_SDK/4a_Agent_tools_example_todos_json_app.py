@@ -21,7 +21,7 @@ def list_todos():
     """List all todos from the todos.json file."""
     try:
         print("Listing todos...")
-        with open("08_openai-agent-sdk/todos.json", "r") as file:
+        with open("todos.json", "r") as file:
             data = json.load(file)  # Use json.load to read directly from file
         return data
     except Exception as e:
@@ -47,7 +47,7 @@ def add_todo(title: str, description: str = "", due_date: str = "") -> Dict[str,
     try:
         # Read existing todos
         try:
-            with open("08_openai-agent-sdk/todos.json", "r") as file:
+            with open("todos.json", "r") as file:
                 todos = json.load(file)
         except FileNotFoundError:
             todos = []  # If file doesn't exist, start with an empty list

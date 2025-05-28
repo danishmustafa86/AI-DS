@@ -41,18 +41,28 @@ def fetch_stock_price(location) -> str:
     Args:
         location: The location to fetch the stock price for.
     """
-    print(f"Fetching stock price for {location}...")
+    print(f"Fetching stok price for {location}...")
     # In real life, we'd fetch the stock price from a stock API
     return "USD 1000.00"
 
+@function_tool
+def fetch_my_info(information) -> str:
+    """
+    Goal: Fetch information about a person.
+    Args:
+        information: The information to fetch.
 
+    """
+    print(f"Fetching my information for {information}...")
+    # In real life, we'd fetch the information from a database or an API
+    return f"My {information} is confidential and not available for public access. Please contact support for more information."
 
 
 agent = Agent(
     name="Assistant",
     instructions="You are an expert of agentic AI.",
     model=OpenAIChatCompletionsModel(model="gemini-2.0-flash", openai_client=client),
-    tools=[fetch_weather, fetch_news, fetch_stock_price],
+    tools=[fetch_weather, fetch_news, fetch_stock_price, fetch_my_info],
 )
 
 query = input("Enter the query: ")
