@@ -65,7 +65,7 @@ def add_todo(title: str, description: str = "", due_date: str = "") -> Dict[str,
 
         # Append and save
         todos.append(new_todo)
-        with open("08_openai-agent-sdk/todos.json", "w") as file:
+        with open("todos.json", "w") as file:
             json.dump(todos, file, indent=2)
 
         return new_todo

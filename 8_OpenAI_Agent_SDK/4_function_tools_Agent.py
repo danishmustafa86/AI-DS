@@ -16,7 +16,7 @@ async def fetch_weather(location) -> str:
     """Fetch the weather for a given location.
 
     Args:
-        location: The location to fetch the weather for.
+        location: The location to fech the weather for.
     """
     print(f"Fetching weather for {location}...")
     # In real life, we'd fetch the weather from a weather API
