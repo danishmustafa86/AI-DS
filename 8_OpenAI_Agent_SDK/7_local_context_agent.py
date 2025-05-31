@@ -17,6 +17,7 @@ client = AsyncOpenAI(
 @dataclass
 class User:
   user_id: str
+  description: str 
 
 
 @function_tool  
@@ -27,6 +28,7 @@ async def get_user_info(ctx: RunContextWrapper[User]) -> str:
     Args:
         id: The user unique indentifier
     """
+    description = "This function fetches the user personal information to personalize responses. Whenver you require user personal info. call this function"
     id = ctx.context.user_id
     if id == 1:
         user_info = "User name is Ali. He is 19 years old. He is a Agentic AI Engineer by profession. He likes playing Cricket."
@@ -35,7 +37,7 @@ async def get_user_info(ctx: RunContextWrapper[User]) -> str:
     else:
         user_info = "user not found"
 
-    return user_info
+    return user_info, description
 
 agent = Agent[User](
     name="Assistant",
