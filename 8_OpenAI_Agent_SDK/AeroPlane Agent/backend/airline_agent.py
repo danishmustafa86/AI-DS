@@ -57,7 +57,7 @@ class AirlineAgentContext(BaseModel):
 async def faq_lookup_tool(question: str) -> str:
     if "bag" in question or "baggage" in question:
         return (
-            "You are allowed to bring one bag on the plane. "
+            "You are allowe to bring one bag on the plane. "
             "It must be under 50 pounds and 22 inches x 14 inches x 9 inches."
         )
     elif "seats" in question or "plane" in question:
