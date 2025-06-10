@@ -6,7 +6,6 @@ import uuid
 from dotenv import load_dotenv
 from pydantic import BaseModel
 import os
-import requests
 from openai import AsyncOpenAI
 from agents import (
     Agent,
@@ -24,8 +23,6 @@ from agents import (
     OpenAIChatCompletionsModel,
 )
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
-from agents.models import OpenAIProvider  # Add this import
-from agents import RunConfig  # Add this import
 
 load_dotenv()
 gemini_api_key = os.getenv("GEMINI_API_KEY")
@@ -35,11 +32,6 @@ client = AsyncOpenAI(
     api_key=gemini_api_key,
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
 )
-
-# Create model provider - THIS IS THE KEY FIX
-model_provider = OpenAIProvider(client=client)
-# Create run config with the model provider
-run_config = RunConfig(model_provider=model_provider)
 
 ### CONTEXT
 
@@ -57,7 +49,7 @@ class AirlineAgentContext(BaseModel):
 async def faq_lookup_tool(question: str) -> str:
     if "bag" in question or "baggage" in question:
         return (
-            "You are allowe to bring one bag on the plane. "
+            "You are allowed to bring one bag on the plane. "
             "It must be under 50 pounds and 22 inches x 14 inches x 9 inches."
         )
     elif "seats" in question or "plane" in question:
@@ -120,8 +112,7 @@ seat_booking_agent = Agent[AirlineAgentContext](
 triage_agent = Agent[AirlineAgentContext](
     name="Triage Agent",
     handoff_description="A triage agent that can delegate a customer's request to the appropriate agent.",
-    instructions=(
-        f"{RECOMMENDED_PROMPT_PREFIX} "
+    instructions=(f"{RECOMMENDED_PROMPT_PREFIX} "
         "You are a helpful triaging agent. You can use your tools to delegate questions to other appropriate agents."
     ),
     handoffs=[
@@ -146,12 +137,10 @@ async def main():
         user_input = input("Enter your message: ")
         with trace("Customer service", group_id=conversation_id):
             input_items.append({"content": user_input, "role": "user"})
-            # Pass the run_config to Runner - THIS IS THE KEY FIX
             result = await Runner.run(
                 current_agent, 
                 input_items, 
                 context=context,
-                run_config=run_config  # Use run_config instead
             )
 
             for new_item in result.new_items:
@@ -159,9 +148,7 @@ async def main():
                 if isinstance(new_item, MessageOutputItem):
                     print(f"{agent_name}: {ItemHelpers.text_message_output(new_item)}")
                 elif isinstance(new_item, HandoffOutputItem):
-                    print(
-                        f"Handed off from {new_item.source_agent.name} to {new_item.target_agent.name}"
-                    )
+                    print(f"Handed off from {new_item.source_agent.name} to {new_item.target_agent.name}")
                 elif isinstance(new_item, ToolCallItem):
                     print(f"{agent_name}: Calling a tool")
                 elif isinstance(new_item, ToolCallOutputItem):
