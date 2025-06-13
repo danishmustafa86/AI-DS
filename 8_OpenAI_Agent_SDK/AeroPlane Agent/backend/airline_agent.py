@@ -3,11 +3,11 @@ from __future__ import annotations as _annotations
 import asyncio
 import random
 import uuid
-from dotenv import load_dotenv
-from pydantic import BaseModel
+from dotenv import load_dotenv 
+from pydantic import BaseModel 
 import os
-from openai import AsyncOpenAI
-from agents import (
+from openai import AsyncOpenAI 
+from agents import ( 
     Agent,
     HandoffOutputItem,
     ItemHelpers,
@@ -21,8 +21,8 @@ from agents import (
     handoff,
     trace,
     OpenAIChatCompletionsModel,
-)
-from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
+) 
+from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX 
 
 load_dotenv()
 gemini_api_key = os.getenv("GEMINI_API_KEY")

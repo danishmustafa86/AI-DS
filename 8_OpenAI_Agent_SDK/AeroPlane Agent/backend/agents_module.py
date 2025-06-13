@@ -1,24 +1,37 @@
-import uuid
-from agents import Runner, TResponseInputItem
-from airline_agent import triage_agent, AirlineAgentContext
+from agents import Runner, RunContextWrapper # type: ignore
+from airline_agent_new import (
+    faq_agent,
+    seat_agent,
+    status_agent,
+    baggage_agent,
+    boarding_pass_agent,
+    loyalty_agent,
+    rebooking_agent,
+    translator_agent,
+    airport_info_agent,
+    invoice_agent,
+    meal_agent,
+    AirlineAgentContext,
+)
 
-# Store per-session context
-context_map = {}
 
-async def process_user_input(user_id: str, message: str) -> str:
-    if user_id not in context_map:
-        context_map[user_id] = AirlineAgentContext()
+async def run_agent(message: str, user_id: str = None, email: str = None) -> str:
+    runner = Runner(
+        agents=[
+            faq_agent,
+            seat_agent,
+            status_agent,
+            baggage_agent,
+            boarding_pass_agent,
+            loyalty_agent,
+            rebooking_agent,
+            translator_agent,
+            airport_info_agent,
+            invoice_agent,
+            meal_agent,
+        ],
+        context=AirlineAgentContext(user_id=user_id, email=email),
+    )
 
-    input_items: list[TResponseInputItem] = [{"content": message, "role": "user"}]
-    context = context_map[user_id]
-
-    result = await Runner.run(triage_agent, input_items, context=context)
-    responses = []
-
-    for new_item in result.new_items:
-        if hasattr(new_item, "output"):
-            responses.append(str(new_item.output))
-        elif hasattr(new_item, "message"):
-            responses.append(new_item.message.content)
-
-    return "\n".join(responses)
+    output = await runner.run([message])
+    return output.pretty_print()

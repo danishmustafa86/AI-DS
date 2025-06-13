@@ -1,31 +1,50 @@
-import { useState } from 'react';
-import { sendMessage } from './api';
-import { v4 as uuidv4 } from 'uuid';
+import React, { useState } from "react";
+import axios from "axios";
+import "./App.css";
 
 function App() {
-  const [input, setInput] = useState("");
-  const [chat, setChat] = useState([]);
-  const [userId] = useState(uuidv4());
+  const [prompt, setPrompt] = useState("");
+  const [responses, setResponses] = useState([]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const userMessage = input;
-    setChat([...chat, { role: 'user', content: userMessage }]);
-    setInput("");
-    const response = await sendMessage(userId, userMessage);
-    setChat([...chat, { role: 'user', content: userMessage }, { role: 'agent', content: response }]);
+    if (!prompt.trim()) return;
+
+    setResponses((prev) => [...prev, { role: "user", message: prompt }]);
+
+    try {
+      const res = await axios.post("http://127.0.0.1:8000/chat", { prompt });
+      setResponses((prev) => [...prev, { role: "agent", message: res.data.response }]);
+    } catch (err) {
+      setResponses((prev) => [
+        ...prev,
+        { role: "agent", message: "❌ Error getting response from server." },
+      ]);
+    }
+
+    setPrompt("");
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Airline Assistant</h1>
-      <div style={{ height: 400, overflowY: 'scroll', border: '1px solid', padding: 10 }}>
-        {chat.map((msg, index) => (
-          <div key={index}><b>{msg.role}:</b> {msg.content}</div>
+    <div className="App">
+      <h1>✈️ Airline Agent Chat</h1>
+      <div className="chat-box">
+        {responses.map((msg, index) => (
+          <div
+            key={index}
+            className={msg.role === "user" ? "chat-message user" : "chat-message agent"}
+          >
+            <strong>{msg.role === "user" ? "You" : "Agent"}:</strong> {msg.message}
+          </div>
         ))}
       </div>
       <form onSubmit={handleSubmit}>
-        <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Enter message" />
+        <input
+          type="text"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="Enter your message..."
+        />
         <button type="submit">Send</button>
       </form>
     </div>
