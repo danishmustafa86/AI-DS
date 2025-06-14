@@ -28,7 +28,7 @@ input_items = []
 @app.on_event("startup")
 async def startup():
     global current_agent, chat_context, conversation_id, input_items
-    from airline_agent import triage_agent, AirlineAgentContext
+    from airline_agent_new import triage_agent, AirlineAgentContext
     import uuid
 
     chat_context = AirlineAgentContext()
@@ -38,7 +38,7 @@ async def startup():
 
 @app.post("/chat")
 async def chat(input_data: PromptInput):
-    from airline_agent import (
+    from airline_agent_new import (
         Runner,
         MessageOutputItem,
         HandoffOutputItem,
