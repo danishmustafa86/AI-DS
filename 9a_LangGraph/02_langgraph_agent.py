@@ -58,7 +58,7 @@ def divide(a: int, b: int) -> float:
     return a / b
 
 def multiply(a: int, b: int) -> int:
-    """Multiply  a and b.
+    """Multiply a and b.
 
     Args:
         a: first int
