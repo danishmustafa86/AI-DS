@@ -1,0 +1,20 @@
+[project]
+name = "10-langgraph"
+version = "0.1.0"
+description = ""
+package-mode = false
+authors = [
+    {name = "Danish Mustafa",email = "danishjajja86@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.11,<4.0"
+dependencies = [
+    "langgraph (>=0.4.8,<0.5.0)",
+    "typing-extensions (>=4.14.0,<5.0.0)",
+    "langchain-google-genai (>=2.1.5,<3.0.0)",
+    "python-dotenv (>=1.1.0,<2.0.0)"
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
