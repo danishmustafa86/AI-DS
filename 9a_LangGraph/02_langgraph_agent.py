@@ -47,10 +47,10 @@ def square(a: int) -> int:
     return a * a
 
 def divide(a: int, b: int) -> float:
-    """Dividee  a by b.
+    """Divide a by b.
 
     Args:
-        a: first integ
+        a: first int
         b: second int
     """
     if b == 0:
