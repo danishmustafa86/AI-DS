@@ -17,7 +17,8 @@ import uuid
 
 # 1. Load environment variables
 load_dotenv()
-GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+print("gemini api key is ", GEMINI_API_KEY)
 
 # 2. Load and process the PDF book
 pdf_path = os.path.join(os.path.dirname(__file__), "my_book.pdf")
@@ -80,15 +81,15 @@ else:
 # Test retriever
 retriever = vector.as_retriever(search_kwargs={"k": 5})  # Get top 5 results
 print("Testing retriever...")
-test_results = retriever.get_relevant_documents("introduction")
+test_results = retriever.invoke("introduction")  # Updated to use invoke instead of deprecated method
 print(f"Test retrieval returned {len(test_results)} documents")
 for i, doc in enumerate(test_results):
     print(f"Result {i+1}: {doc.page_content[:100]}...")
 
 retriever_tool = create_retriever_tool(
     retriever,
-    "Book_Knowledge",
-    "Search for information in the provided book. Use this tool to find relevant content from the book."
+    "book_search",
+    "Search for information in the book about Agentic AI. Use this tool to find relevant content from the book before answering any questions."
 )
 
 # 4. Set up Gemini LLM
@@ -98,21 +99,26 @@ llm = ChatGoogleGenerativeAI(
     temperature=0.1  # Make responses more deterministic
 )
 
-# 5. More explicit prompt template
+# 5. More explicit prompt template with stronger instructions
 primary_assistant_prompt = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            '''You are a helpful assistant that answers questions about a specific book.
+            '''You are a helpful assistant that answers questions about a book on Agentic AI.
 
-CRITICAL INSTRUCTIONS:
-1. For ANY question about the book content, you MUST first use the Book_Knowledge tool to search for relevant information
-2. NEVER answer questions about the book without using the Book_Knowledge tool first
-3. After using the tool, provide a comprehensive answer based on the retrieved content
-4. If the tool doesn't return relevant information, say "I couldn't find specific information about this topic in the book"
-5. Always base your answers on the retrieved content, not your general knowledge
+MANDATORY RULES - YOU MUST FOLLOW THESE:
+1. For EVERY question about the book, you MUST use the book_search tool first
+2. NEVER provide answers without first searching the book
+3. You have access to a book_search tool - use it for every question
+4. After getting results from book_search, provide a comprehensive answer based on the retrieved content
+5. If the search doesn't return relevant information, say "I couldn't find specific information about this topic in the book"
 
-Remember: Always use the Book_Knowledge tool first for any book-related question!''',
+WORKFLOW:
+1. User asks question → Use book_search tool
+2. Get results → Provide answer based on results
+3. Always cite the book content in your response
+
+You MUST use the book_search tool for every question. Do not skip this step.''',
         ),
         ("placeholder", "{messages}"),
     ]
@@ -144,9 +150,29 @@ def call_model(state: State):
     """Call the model with the current state"""
     print(f"Calling model with {len(state['messages'])} messages")
     
-    # Create the chain properly
-    chain = primary_assistant_prompt | llm.bind_tools(tools)
-    result = chain.invoke(state)
+    # Check if this is the first user message and no tool has been called yet
+    user_messages = [msg for msg in state['messages'] if isinstance(msg, HumanMessage)]
+    tool_messages = [msg for msg in state['messages'] if isinstance(msg, ToolMessage)]
+    
+    print(f"User messages: {len(user_messages)}, Tool messages: {len(tool_messages)}")
+    
+    # If we have a user question but no tool results yet, force tool use
+    if user_messages and not tool_messages:
+        print("Forcing tool use for user question")
+        # Create a more explicit prompt to force tool usage
+        enhanced_messages = state['messages'].copy()
+        if isinstance(enhanced_messages[-1], HumanMessage):
+            enhanced_messages[-1] = HumanMessage(
+                content=f"Use the book_search tool to find information about: {enhanced_messages[-1].content}"
+            )
+        
+        # Create the chain properly
+        chain = primary_assistant_prompt | llm.bind_tools(tools)
+        result = chain.invoke({"messages": enhanced_messages})
+    else:
+        # Create the chain properly
+        chain = primary_assistant_prompt | llm.bind_tools(tools)
+        result = chain.invoke(state)
     
     print(f"Model response type: {type(result)}")
     if hasattr(result, 'tool_calls') and result.tool_calls:
@@ -158,12 +184,62 @@ def call_model(state: State):
     
     return {"messages": [result]}
 
-# 7. Build the graph
+# Alternative approach: Create a custom function that forces tool use
+def force_search_and_answer(state: State):
+    """Force the model to search first, then answer"""
+    print("Forcing search and answer approach")
+    
+    # Get the last human message
+    last_human_msg = None
+    for msg in reversed(state['messages']):
+        if isinstance(msg, HumanMessage):
+            last_human_msg = msg
+            break
+    
+    if not last_human_msg:
+        return {"messages": [AIMessage(content="I need a question to answer.")]}
+    
+    # First, search the book
+    print("Step 1: Searching the book...")
+    search_results = retriever.invoke(last_human_msg.content)
+    print(f"Found {len(search_results)} relevant documents")
+    
+    # Create context from search results
+    context = "\n\n".join([doc.page_content for doc in search_results])
+    
+    # Create a focused prompt for answering
+    answer_prompt = ChatPromptTemplate.from_messages([
+        ("system", """You are an expert on Agentic AI. Based on the book content provided below, answer the user's question comprehensively.
+
+Book Content:
+{context}
+
+Instructions:
+- Answer based only on the provided book content
+- Be comprehensive and detailed
+- If the book content doesn't contain relevant information, say so
+- Quote relevant parts of the book when appropriate"""),
+        ("human", "{question}")
+    ])
+    
+    # Generate answer
+    chain = answer_prompt | llm
+    result = chain.invoke({
+        "context": context,
+        "question": last_human_msg.content
+    })
+    
+    print(f"Generated answer: {result.content[:100]}...")
+    
+    return {"messages": [result]}
+
+# 7. Build the graph with alternative approach
 builder = StateGraph(State)
 
 # Add nodes
 builder.add_node("agent", call_model)
 builder.add_node("tools", ToolNode(tools))
+builder.add_node("search_and_answer", force_search_and_answer)  # Alternative approach
 
 # Add edges
 builder.add_edge(START, "agent")
@@ -173,6 +249,18 @@ builder.add_edge("tools", "agent")
 # Compile with memory
 memory = MemorySaver()
 graph = builder.compile(checkpointer=memory)
+
+# Alternative simpler graph that forces search
+def create_simple_graph():
+    """Create a simpler graph that always searches first"""
+    simple_builder = StateGraph(State)
+    simple_builder.add_node("search_and_answer", force_search_and_answer)
+    simple_builder.add_edge(START, "search_and_answer")
+    simple_builder.add_edge("search_and_answer", END)
+    return simple_builder.compile()
+
+# Use the simpler approach
+simple_graph = create_simple_graph()
 
 if __name__ == "__main__":
     config = {
@@ -185,6 +273,7 @@ if __name__ == "__main__":
     print("Book QA System Ready!")
     print("=" * 50)
     print("Ask questions about your book! (Type 'exit' to quit)")
+    print("Using simplified approach that always searches the book first.")
     
     while True:
         user_input = input("\nYou: ")
@@ -195,14 +284,15 @@ if __name__ == "__main__":
         print("-" * 30)
         
         try:
-            # Create a fresh conversation for each question to avoid confusion
+            # Create a fresh conversation for each question
             fresh_config = {
                 "configurable": {
                     "thread_id": str(uuid.uuid4()),
                 }
             }
             
-            result = graph.invoke(
+            # Use the simple graph that always searches
+            result = simple_graph.invoke(
                 {"messages": [HumanMessage(content=user_input)]}, 
                 fresh_config
             )
@@ -212,7 +302,7 @@ if __name__ == "__main__":
             # Find the final AI response
             final_response = None
             for msg in reversed(result["messages"]):
-                if isinstance(msg, AIMessage) and not (hasattr(msg, 'tool_calls') and msg.tool_calls):
+                if isinstance(msg, AIMessage):
                     final_response = msg
                     break
             
@@ -225,3 +315,5 @@ if __name__ == "__main__":
             print(f"Error processing question: {e}")
             import traceback
             traceback.print_exc()
+    
+    print("\nTo use the original complex graph instead, replace 'simple_graph' with 'graph' in the invoke call.")

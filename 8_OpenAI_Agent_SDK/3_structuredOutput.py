@@ -18,12 +18,13 @@ class Quiz(BaseModel):
     question: str
     options: List[str]  # ✅ Now Gemini knows it's a list of strings
     correct_option: str
+    success:str
 
 agent = Agent(
     name="Assistant",
     instructions="You are a Quiz Agent. You generate quizes",
     model=OpenAIChatCompletionsModel(model="gemini-2.0-flash", openai_client=client),
-    # output_type=Quiz
+    output_type=Quiz
 )
 
 query = input("Enter the query: ")

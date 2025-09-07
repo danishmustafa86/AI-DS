@@ -28,16 +28,15 @@ async def get_user_info(ctx: RunContextWrapper[User]) -> str:
     Args:
         id: The user unique indentifier
     """
-    description = "This function fetches the user personal information to personalize responses. Whenver you require user personal info. call this function"
     id = ctx.context.user_id
-    if id == 1:
+    if id == "1":
         user_info = "User name is Ali. He is 19 years old. He is a Agentic AI Engineer by profession. He likes playing Cricket."
-    elif id == 2:
+    elif id == "2":
         user_info = "User name is Usman. He is 30 years old. He is a doctor by profession. He likes mountains."
     else:
         user_info = "user not found"
 
-    return user_info, description
+    return user_info
 
 agent = Agent[User](
     name="Assistant",
@@ -51,7 +50,7 @@ query = input("Enter the query: ")
 result = Runner.run_sync(
     agent,
     query,
-    context=User(user_id=1)
+    context=User(user_id="1", description="Ali - 19 year old Agentic AI Engineer who likes Cricket")
 )
 
 print(result.final_output)
