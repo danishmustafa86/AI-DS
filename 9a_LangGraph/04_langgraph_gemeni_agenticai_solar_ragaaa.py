@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings # type:ingore
-=======
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
->>>>>>> f1e9c7feac2654a53f562d37c0efe158653d3717
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -13,11 +9,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable,RunnableLambda
 from langgraph.graph.message import AnyMessage, add_messages
 from langchain_core.messages import ToolMessage
-<<<<<<< HEAD
-from langgraph.prebuilt import ToolNode, tools_condition
-=======
 from langgraph.prebuilt import ToolNode,tools_condition
->>>>>>> f1e9c7feac2654a53f562d37c0efe158653d3717
 from langgraph.graph import StateGraph, START
 from langgraph.checkpoint.memory import MemorySaver
 from typing import Annotated
@@ -29,25 +21,18 @@ load_dotenv()
 
 
 llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash",
-<<<<<<< HEAD
-                             google_api_key="AIzaSyAFoe7n46mU-IcU4gxDkxhTi4BEXdnrAl8")
-=======
-                             google_api_key=os.getenv("GOOGLE_API_KEY"))
->>>>>>> f1e9c7feac2654a53f562d37c0efe158653d3717
+                             google_api_key=os.getenv("GOOGLE_API_kEY"))
 
 
 loader = WebBaseLoader(
-    "https://aurorasolar.com/blog/how-do-solar-panels-work-everything-you-need-to-know/")
+    "https://ahmad-jajja.com/")
 docs = loader.load()
 documents = RecursiveCharacterTextSplitter(
     chunk_size=1000, chunk_overlap=200
 ).split_documents(docs)
+print("documents here is docuements i got from the web",len(documents)," ", documents[0].metadata,"jajja sahab ", "dansih jajja ", documents[0].page_content, documents[0].page_content[0:100])
 vector = FAISS.from_documents(
-<<<<<<< HEAD
-    documents, GoogleGenerativeAIEmbeddings(model="models/embedding-001"))
-=======
     documents, GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=os.getenv("GOOGLE_API_KEY")))
->>>>>>> f1e9c7feac2654a53f562d37c0efe158653d3717
 retriever = vector.as_retriever()
 retriever_tool = create_retriever_tool(
     retriever,
@@ -242,15 +227,9 @@ graph = builder.compile(checkpointer=memory)
 # import shutil
 
 # Let's create an example conversation a user might have with the assistant
-<<<<<<< HEAD
-# tutorial_questions = [
-#     "my montly cost is $100, what will i save"
-# ]
-=======
 tutorial_questions = [
     "my montly cost is $100, what will i save"
 ]
->>>>>>> f1e9c7feac2654a53f562d37c0efe158653d3717
 
 config = {
         "configurable": {
